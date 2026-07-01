@@ -1,0 +1,15 @@
+[defaults]
+model = "zai-org/glm-5.1"
+logprobs_enabled = true
+temperature = 0.7
+top_p = 0.9
+max_tokens = 4096
+seed = 42
+
+[policy]
+network_default = "deny"
+allow_provider_network = false
+secrets_redaction = true
+
+[providers.nvidia]
+model = "deepseek-ai/deepseek-v4-flash"
