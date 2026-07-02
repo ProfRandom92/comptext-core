@@ -9,17 +9,34 @@ dependencies = [
     "rich>=13.7.0",
     "numpy>=1.26.0",
     "mcp>=1.0.0",
-    "fastmcp>=0.1.0",
     "httpx>=0.27.0",
     "blake3>=1.0.9",
     "toml>=0.10.2",
     "google-genai>=1.56.0",
+    "cryptography>=42.0.0",
+    "openai>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "build>=1.0.0",
+]
+cognitive = [
     "torch>=2.0.0",
     "transformers>=4.0.0",
 ]
-
+fastmcp = [
+    "fastmcp>=0.1.0",
+]
+all = [
+    "comptext-cli[dev,cognitive,fastmcp]",
+]
 
 [project.scripts]
+comptext = "comptext.repl:run_cli"
+ctxt = "comptext.repl:run_cli"
 comptext-cli = "comptext.repl:run_cli"
 
 [build-system]
