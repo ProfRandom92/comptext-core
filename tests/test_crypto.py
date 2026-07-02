@@ -2,7 +2,9 @@ import pytest
 from comptext.core.crypto import (
     sort_json_value, canonical_json, hash_pair, MerkleTree,
     verify_merkle_proof, verify_merkle_proof_hash,
-    verify_ed25519_signature, sign_ed25519_data
+    verify_ed25519_signature, sign_ed25519_data,
+    bytes_to_b64url, b64url_to_bytes,
+    proof_to_compact_string, proof_from_compact_string
 )
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
@@ -46,3 +48,34 @@ def test_ed25519_signatures():
     # Verify in python
     assert verify_ed25519_signature(pub_bytes.hex(), sig_hex, data)
     assert not verify_ed25519_signature(pub_bytes.hex(), sig_hex, data + b" mutated")
+
+def test_base64url_conversion():
+    data = b"\x00\x01\x02\xff"
+    b64 = bytes_to_b64url(data)
+    assert "=" not in b64
+    decoded = b64url_to_bytes(b64)
+    assert decoded == data
+
+def test_compact_proof_serialization():
+    # Test with odd number of leaves to force odd-level duplicate optimization
+    leaves = [b"leaf1", b"leaf2", b"leaf3"]
+    tree = MerkleTree.from_leaves(leaves)
+    
+    # Generate proof for index 2 (leaf3)
+    # The sibling is duplicated at level 1 because length is odd
+    proof = tree.try_generate_proof(2)
+    assert "" in proof["proof_path"] # Duplicate should be represented as empty string
+    
+    # Test standard verification
+    assert verify_merkle_proof(b"leaf3", proof["proof_path"], tree.root_hex())
+    
+    # Test compact serialization
+    compact = proof_to_compact_string(proof)
+    assert ":" in compact
+    
+    # Deserialize back
+    recovered_proof = proof_from_compact_string(compact)
+    assert recovered_proof == proof
+    
+    # Verify recovered proof
+    assert verify_merkle_proof(b"leaf3", recovered_proof["proof_path"], tree.root_hex())

@@ -1,4 +1,5 @@
 import json
+import base64
 from blake3 import blake3
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.exceptions import InvalidSignature
@@ -99,7 +100,7 @@ class MerkleTree:
             if sibling_idx < len(level):
                 proof_path.append(level[sibling_idx])
             else:
-                proof_path.append(level[idx])
+                proof_path.append(b"") # Optimize token overhead: omit duplicate sibling by using empty bytes
                 
             next_level = []
             for i in range(0, len(level), 2):
@@ -111,7 +112,7 @@ class MerkleTree:
             
         return {
             "leaf_hash": self.leaves[index].hex(),
-            "proof_path": [p.hex() for p in proof_path],
+            "proof_path": [("" if len(p) == 0 else p.hex()) for p in proof_path],
             "root_hash": self.root.hex()
         }
 
@@ -125,11 +126,66 @@ def verify_merkle_proof_hash(leaf_hash_hex: str, proof_path_hex: list[str], root
     try:
         current = bytes.fromhex(leaf_hash_hex)
         for sibling_hex in proof_path_hex:
-            sibling = bytes.fromhex(sibling_hex)
+            if sibling_hex == "":
+                sibling = current # Reconstruct duplicate sibling
+            else:
+                sibling = bytes.fromhex(sibling_hex)
             current = hash_pair(current, sibling)
         return current.hex() == root_hex
     except Exception:
         return False
+
+def bytes_to_b64url(data: bytes) -> str:
+    """Convert bytes to URL-safe Base64 without padding."""
+    return base64.urlsafe_b64encode(data).decode("utf-8").rstrip("=")
+
+def b64url_to_bytes(s: str) -> bytes:
+    """Convert URL-safe Base64 string (with or without padding) back to bytes."""
+    if not s:
+        return b""
+    padding = len(s) % 4
+    if padding:
+        s += "=" * (4 - padding)
+    return base64.urlsafe_b64decode(s.encode("utf-8"))
+
+def proof_to_compact_string(proof: dict) -> str:
+    """Convert standard hex-based Merkle proof dictionary to a compact token-efficient string."""
+    leaf_b64 = bytes_to_b64url(bytes.fromhex(proof["leaf_hash"]))
+    root_b64 = bytes_to_b64url(bytes.fromhex(proof["root_hash"]))
+    path_parts = []
+    for p in proof["proof_path"]:
+        if p == "":
+            path_parts.append("")
+        else:
+            path_parts.append(bytes_to_b64url(bytes.fromhex(p)))
+    path_str = ",".join(path_parts)
+    return f"{leaf_b64}:{root_b64}:{path_str}"
+
+def proof_from_compact_string(compact: str) -> dict:
+    """Convert a compact proof string back to standard hex-based Merkle proof dictionary."""
+    parts = compact.split(":", 2)
+    if len(parts) != 3:
+        raise ValueError("Invalid compact proof format.")
+    leaf_hex = b64url_to_bytes(parts[0]).hex()
+    root_hex = b64url_to_bytes(parts[1]).hex()
+    
+    path_str = parts[2]
+    if not path_str:
+        proof_path = []
+    else:
+        path_parts = path_str.split(",")
+        proof_path = []
+        for p in path_parts:
+            if p == "":
+                proof_path.append("")
+            else:
+                proof_path.append(b64url_to_bytes(p).hex())
+                
+    return {
+        "leaf_hash": leaf_hex,
+        "proof_path": proof_path,
+        "root_hash": root_hex
+    }
 
 def generate_keypair() -> tuple[bytes, bytes, str, str]:
     """Generate an Ed25519 private/public keypair.

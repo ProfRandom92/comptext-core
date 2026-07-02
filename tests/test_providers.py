@@ -3,7 +3,13 @@ from unittest.mock import patch, MagicMock
 from comptext.providers.google import GoogleProvider
 from comptext.providers.xai import XAIProvider
 from comptext.providers.nvidia import NVIDIAProvider
-from comptext.providers import get_provider
+from comptext.providers import (
+    get_provider,
+    ProviderAuthError,
+    ProviderRateLimitError,
+    ProviderConnectionError,
+    ProviderAPIError
+)
 from google.genai import types
 from openai import RateLimitError
 
@@ -59,7 +65,7 @@ def test_google_provider_chat():
 
 def test_google_provider_missing_key():
     provider = GoogleProvider(api_key="")
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ProviderAuthError) as exc:
         provider.complete("hi")
     assert "GOOGLE_API_KEY" in str(exc.value)
 
@@ -102,7 +108,7 @@ def test_xai_provider_chat():
 
 def test_xai_provider_missing_key():
     provider = XAIProvider(api_key="")
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ProviderAuthError) as exc:
         provider.complete("hi")
     assert "XAI_API_KEY" in str(exc.value)
 
@@ -171,12 +177,12 @@ def test_nvidia_provider_chat():
         )
 
 def test_nvidia_provider_invalid_key():
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ProviderAuthError) as exc:
         NVIDIAProvider(api_key="invalid_key")
     assert "must start with 'nvapi-'" in str(exc.value)
 
     provider = NVIDIAProvider(api_key="")
-    with pytest.raises(ValueError) as exc2:
+    with pytest.raises(ProviderAuthError) as exc2:
         provider.complete("hello")
     assert "NVIDIA_API_KEY" in str(exc2.value)
 
@@ -227,8 +233,52 @@ def test_nvidia_provider_rate_limit_exhausted():
         provider = NVIDIAProvider(api_key="nvapi-test_key")
         
         with patch("time.sleep") as mock_sleep:
-            with pytest.raises(RuntimeError) as exc:
+            with pytest.raises(ProviderRateLimitError) as exc:
                 provider.complete("hello")
-            assert "exceeded after 3 retries" in str(exc.value)
+            assert "rate limits exceeded after 3 retries" in str(exc.value)
             assert mock_client.chat.completions.create.call_count == 4
+
+def test_google_provider_connection_error():
+    with patch("google.genai.Client") as mock_client_class:
+        mock_client = MagicMock()
+        import httpx
+        mock_client.models.generate_content.side_effect = httpx.ConnectError("Connection timed out")
+        mock_client_class.return_value = mock_client
+        
+        provider = GoogleProvider(api_key="test_key")
+        with pytest.raises(ProviderConnectionError) as exc:
+            provider.complete("hello")
+        assert "connection failed" in str(exc.value)
+
+def test_xai_provider_api_error():
+    provider = XAIProvider(api_key="test_key")
+    with patch("httpx.post") as mock_post:
+        import httpx
+        fake_request = httpx.Request("POST", XAIProvider.BASE_URL)
+        fake_response = httpx.Response(400, request=fake_request)
+        # Emulate raise_for_status raising HTTPStatusError
+        fake_response.raise_for_status = MagicMock(side_effect=httpx.HTTPStatusError("Bad Request", request=fake_request, response=fake_response))
+        mock_post.return_value = fake_response
+        
+        with pytest.raises(ProviderAPIError) as exc:
+            provider.complete("hello")
+        assert "status error" in str(exc.value)
+
+def test_nvidia_provider_api_auth_error():
+    with patch("comptext.providers.nvidia.OpenAI") as mock_openai_class:
+        mock_client = MagicMock()
+        from openai import AuthenticationError
+        import httpx
+        fake_request = httpx.Request("POST", "https://integrate.api.nvidia.com/v1/chat/completions")
+        fake_response = httpx.Response(401, request=fake_request)
+        mock_client.chat.completions.create.side_effect = AuthenticationError(
+            "Invalid authentication", response=fake_response, body=None
+        )
+        mock_openai_class.return_value = mock_client
+        
+        provider = NVIDIAProvider(api_key="nvapi-test_key")
+        with pytest.raises(ProviderAuthError) as exc:
+            provider.complete("hello")
+        assert "authentication failed" in str(exc.value)
+
 

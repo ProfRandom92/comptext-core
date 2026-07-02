@@ -1,6 +1,13 @@
 from .google import GoogleProvider
 from .xai import XAIProvider
 from .nvidia import NVIDIAProvider
+from .exceptions import (
+    ProviderError,
+    ProviderAuthError,
+    ProviderRateLimitError,
+    ProviderConnectionError,
+    ProviderAPIError
+)
 
 _MAP = {
     "google": GoogleProvider,
