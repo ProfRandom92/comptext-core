@@ -25,9 +25,6 @@ Attention-Head-Ablation (GPT-2) und einen FastMCP-Server in einem
 einheitlichen Tool. Konsolidiert aus 5 fragmentierten Repos zu einem
 produktionsnahen v0.1.0-Release.
 
-![CompText CLI Demo](assets/demo.gif)
-*Live-Demo: REPL-Start, Audit, Keygen, Capabilities und Help-Befehle*
-
 ---
 
 ## Architektur
@@ -64,7 +61,6 @@ comptext-core/
 │   └── terminal/     # ANSI-Logo-Renderer + chafa-Integration
 ├── assets/
 │   ├── comptext-logo-braille-color.ans
-│   ├── demo.gif      # Live-Demo GIF
 │   └── demo.tape     # VHS-Aufzeichnungs-Konfiguration (Fallback)
 ├── tests/            # 57 Tests, 0 Warnungen
 ├── SKILL.md          # Root-Skill-Definition

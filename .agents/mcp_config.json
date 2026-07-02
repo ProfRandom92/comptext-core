@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "comptext-core-mcp": {
+      "command": "python",
+      "args": [
+        "-m",
+        "comptext.mcp.server"
+      ]
+    }
+  }
+}
