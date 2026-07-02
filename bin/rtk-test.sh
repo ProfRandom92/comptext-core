@@ -4,8 +4,8 @@
 
 if command -v rtk &> /dev/null; then
     echo "Running tests via RTK Token Killer Proxy..."
-    rtk run pytest -v "$@"
+    rtk run python -m pytest -v "$@"
 else
     echo "RTK proxy not found. Running standard pytest..."
-    pytest -v "$@"
+    python -m pytest -v "$@"
 fi

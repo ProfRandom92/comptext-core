@@ -24,6 +24,7 @@ def print_help():
     print("  providers list      List all configured providers")
     print("  keygen              Generate Ed25519 keypair")
     print("  verify              Verify trace Merkle root and Ed25519 signature")
+    print("  verify-compact      Verify a compact Base64url Merkle proof")
     print("  audit [path]        Perform a read-only audit of a project directory")
     print("  logo                Render the CompText logo")
     print("  version             Print version info")
@@ -67,6 +68,16 @@ def main():
         from comptext.cli.verify import run_verify
         run_verify(args[1:], json_output)
         return
+
+    # Handle verify-compact command early
+    if args[0] == "verify-compact":
+        if len(args) < 2:
+            print("Usage: comptext verify-compact <compact_proof_string> [--json]")
+            sys.exit(1)
+        json_out = json_output or ("--json" in args[2:])
+        from comptext.cli.verify_compact import run_verify_compact
+        success = run_verify_compact(args[1], json_out)
+        sys.exit(0 if success else 1)
 
     # Handle audit command early
     if args[0] == "audit":
