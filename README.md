@@ -1,143 +1,57 @@
-<div align="center">
+# CompText Core
 
-```
-  ██████╗ ██████╗ ███╗   ███╗██████╗ ████████╗███████╗██╗  ██╗████████╗
- ██╔════╝██╔═══██╗████╗ ████║██╔══██╗╚══██╔══╝██╔════╝╚██╗██╔╝╚══██╔══╝
- ██║     ██║   ██║██╔████╔██║██████╔╝   ██║   █████╗   ╚███╔╝    ██║   
- ██║     ██║   ██║██║╚██╔╝██║██╔═══╝    ██║   ██╔══╝   ██╔██╗    ██║   
- ╚██████╗╚██████╔╝██║ ╚═╝ ██║██║        ██║   ███████╗██╔╝ ██╗   ██║   
-  ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚═╝        ╚═╝   ╚══════╝╚═╝  ╚═╝   ╚═╝   
-```
+<p align="center">
+  <img src="https://img.shields.io/badge/tests-57%2F57_passing-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/python-3.12%2B-blue" alt="Python">
+  <img src="https://img.shields.io/badge/license-MIT-yellow" alt="License">
+  <img src="https://img.shields.io/badge/version-v0.1.0-orange" alt="Version">
+  <img src="https://img.shields.io/badge/hashing-BLAKE3-purple" alt="BLAKE3">
+  <img src="https://img.shields.io/badge/signatures-Ed25519-red" alt="Ed25519">
+</p>
 
-**THE OPERATING SYSTEM FOR CONTEXT**
+<p align="center">
+  <img src="https://img.shields.io/badge/Anthropic-supported-000000?logo=anthropic" alt="Anthropic">
+  <img src="https://img.shields.io/badge/OpenAI-supported-412991?logo=openai&logoColor=white" alt="OpenAI">
+  <img src="https://img.shields.io/badge/Google-supported-4285F4?logo=google&logoColor=white" alt="Google">
+  <img src="https://img.shields.io/badge/xAI-supported-000000" alt="xAI">
+  <img src="https://img.shields.io/badge/NVIDIA_NIM-supported-76B900?logo=nvidia&logoColor=white" alt="NVIDIA NIM">
+  <img src="https://img.shields.io/badge/Ollama-supported-000000?logo=ollama&logoColor=white" alt="Ollama">
+</p>
 
-[![Python](https://img.shields.io/badge/Python-3.12+-3776ab?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-54%2F54%20passing-brightgreen?style=flat-square)](#testing)
-[![Version](https://img.shields.io/badge/Version-v0.1.0-blue?style=flat-square)](https://github.com/ProfRandom92/comptext-core/releases/tag/v0.1.0)
-[![Providers](https://img.shields.io/badge/Providers-5%20LLMs-orange?style=flat-square)](#providers)
+**Deterministisches Python CLI mit kryptografischer Verifikation.**
 
-*Deterministic. Verifiable. Cryptographically signed. Free.*
+Vereint 6 LLM-Provider (Anthropic, OpenAI, Google, xAI, NVIDIA NIM, Ollama), BLAKE3 Merkle-Hashing, Ed25519-Signaturen,
+Attention-Head-Ablation (GPT-2) und einen FastMCP-Server in einem
+einheitlichen Tool. Konsolidiert aus 5 fragmentierten Repos zu einem
+produktionsnahen v0.1.0-Release.
 
-</div>
-
----
-
-## What is CompText Core?
-
-**CompText Core** is a unified Python CLI and library that brings together the full CompText ecosystem into a single, coherent tool. It is built around four principles:
-
-- **Deterministic** — identical input always produces identical output, across Python and Rust runtimes (Mulberry32 PRNG, cross-platform verified)
-- **Verifiable** — every agent trace is BLAKE3 Merkle-hashed and Ed25519-signed, making replay and drift detection cryptographically provable
-- **Cognitive** — built-in Attention-Head Ablation engine to measure how individual transformer attention heads contribute to model behavior
-- **Unified** — five LLM providers, FastMCP server, dynamic SKILL.md loading, and a terminal logo renderer — all in one `pip install`
+![CompText CLI Demo](assets/demo.gif)
+*Live-Demo: REPL-Start, Audit, Keygen, Capabilities und Help-Befehle*
 
 ---
 
-## Quick Start
+## Architektur
 
-```bash
-# Install
-git clone https://github.com/ProfRandom92/comptext-core.git
-cd comptext-core
-pip install -e ".[dev]"
-
-# Run
-comptext                          # Displays the ANSI logo
-comptext --help                   # All 17 subcommands
-comptext audit <path>             # Audit any project directory
-comptext audit <path> --json      # Machine-readable output
-comptext capabilities --json      # Full capability contract
+```mermaid
+flowchart TD
+    A[comptext CLI] --> B[Command Dispatcher]
+    B --> C[REPL Interface]
+    B --> D[Audit Engine]
+    B --> E[Crypto Layer]
+    B --> F[LLM Provider Router]
+    F --> G[Anthropic]
+    F --> H[OpenAI]
+    F --> I[Google]
+    F --> J[xAI]
+    F --> K[NVIDIA NIM]
+    F --> L[Ollama]
+    E --> M[BLAKE3 Merkle Hashing]
+    E --> N[Ed25519 Signing]
+    B --> O[FastMCP Server]
+    B --> P[GPT-2 Attention Ablation]
 ```
 
----
-
-## Features
-
-### 🔐 Cryptographic Integrity
-
-```bash
-comptext keygen                   # Generate Ed25519 keypair
-comptext verify trace.json \      # Verify Merkle + signature
-  --pubkey <hex> --signature <hex>
-```
-
-Every agent trace is hashed with **BLAKE3** into a Merkle chain and can be signed with **Ed25519**. Tampering with any event in the chain breaks verification instantly.
-
-### 🧠 Cognitive Engine
-
-```python
-from comptext.core.cognitive import calculate_delta_ppl
-
-result = calculate_delta_ppl(
-    sentence="The cat sat on the mat.",
-    layer_index=5,
-    head_index=3,
-    model_identifier="gpt2"
-)
-# {'baseline_ppl': 23.4, 'ablated_ppl': 31.7, 'delta_ppl': 8.3, ...}
-```
-
-Measures the **perplexity delta** when a specific attention head is ablated (zeroed out) — revealing how much each head contributes to model predictions.
-
-### 📋 Plan Validation
-
-```bash
-comptext audit <path> --validate-plan plan.json
-```
-
-Compares execution logs against planned contracts to detect **drift, manipulation, or unauthorized deviations** — essential for auditable AI agent pipelines.
-
-### 📦 Dynamic SKILL.md Loader
-
-Place a `SKILL.md` with YAML frontmatter anywhere in your project:
-
-```yaml
----
-name: my-skill
-version: 1.0.0
-mode: deterministic
-hash: blake3
----
-This skill does X when Y...
-```
-
-`CompTextEngine` auto-discovers and merges all `SKILL.md` files in directory order, shaping system behavior dynamically.
-
-### 🖥️ FastMCP Server
-
-```bash
-comptext mcp serve
-```
-
-Exposes 9 tools over the Model Context Protocol:
-`compress`, `sentiment`, `trace_hash`, `sign_trace`, `verify_signature`, `validate_plan`, `calculate_delta_ppl`, `audit`, `hash_text`
-
----
-
-## Providers
-
-Set API keys in `.env` (copy `.env.example`):
-
-| Provider | Env Var | Notes |
-|---|---|---|
-| **Anthropic** | `ANTHROPIC_API_KEY` | Claude 3.5/4 family |
-| **OpenAI** | `OPENAI_API_KEY` | GPT-4o, o3 |
-| **Google** | `GOOGLE_API_KEY` | Gemini 2.5 Pro (google-genai SDK) |
-| **xAI** | `XAI_API_KEY` | Grok-3 |
-| **NVIDIA NIM** | `NVIDIA_API_KEY` (`nvapi-...`) | 100+ free models |
-
-```bash
-comptext chat --provider nvidia   # Free: DeepSeek, Kimi, Llama, GLM, ...
-comptext chat --provider anthropic
-comptext code "refactor this" --provider openai
-```
-
-> **NVIDIA NIM** provides 100+ free serverless models at [build.nvidia.com/models](https://build.nvidia.com/models). Rate-limited — recommended for development, not production.
-
----
-
-## Architecture
+## Projektstruktur
 
 ```
 comptext-core/
@@ -145,82 +59,118 @@ comptext-core/
 │   ├── cli/          # audit, verify, logo, code, chat, mcp, keygen
 │   ├── core/         # engine, crypto, cognitive, plan_validator,
 │   │                 # capabilities, skills
-│   ├── mcp/          # FastMCP server (9 tools)
-│   ├── providers/    # anthropic, openai, google, xai, nvidia
-│   └── terminal/     # ANSI logo renderer + chafa integration
+│   ├── mcp/          # FastMCP-Server (9 Tools)
+│   ├── providers/    # anthropic, openai, google, xai, nvidia, ollama
+│   └── terminal/     # ANSI-Logo-Renderer + chafa-Integration
 ├── assets/
-│   └── comptext-logo-braille-color.ans
-├── tests/            # 54 tests, 0 warnings
-├── SKILL.md          # Root skill definition
+│   ├── comptext-logo-braille-color.ans
+│   ├── demo.gif      # Live-Demo GIF
+│   └── demo.tape     # VHS-Aufzeichnungs-Konfiguration (Fallback)
+├── tests/            # 57 Tests, 0 Warnungen
+├── SKILL.md          # Root-Skill-Definition
 ├── CHANGELOG.md
 └── pyproject.toml
 ```
 
----
+## Kryptografischer Verifikationsablauf
 
-## Testing
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI as comptext CLI
+    participant Hash as BLAKE3 Engine
+    participant Sig as Ed25519 Signer
+    User->>CLI: comptext keygen
+    CLI->>Sig: generate keypair
+    Sig-->>User: pubkey + privkey
+    User->>CLI: comptext audit . --json
+    CLI->>Hash: hash execution trace (Merkle tree)
+    Hash-->>CLI: root hash
+    CLI->>Sig: sign(root hash, privkey)
+    Sig-->>User: signature
+    User->>CLI: comptext verify --pubkey --signature
+    CLI->>Sig: verify(signature, pubkey, root hash)
+    Sig-->>User: valid / invalid
+```
+
+## Features
+
+- Deterministisches CLI mit reproduzierbaren Ausgaben
+- 6 LLM-Provider-Integrationen in einem einheitlichen Interface
+- BLAKE3 Merkle-Hashing für kryptografische Nachweisketten
+- Ed25519-Signaturen zur Verifikation von Ausführungsspuren
+- GPT-2 Attention-Head-Ablation für Interpretierbarkeitsforschung
+- Eingebauter FastMCP-Server für Tool-Integration
+
+## Provider-Vergleich
+
+| Provider    | Streaming | Logprobs | Einsatzzweck                     |
+|-------------|-----------|----------|-----------------------------------|
+| Anthropic   | ✅        | ❌       | Reasoning, Code-Review            |
+| OpenAI      | ✅        | ✅       | Allzweck-Chat, Function Calling   |
+| Google      | ✅        | ❌       | Multimodal, lange Kontexte        |
+| xAI         | ✅        | ❌       | Echtzeit-Informationen            |
+| NVIDIA NIM  | ✅        | ✅       | Kostenlose Modellvielfalt, lokal  |
+| Ollama      | ✅        | ❌       | Lokale Modelle (z. B. Llama 3)    |
+
+## Installation
 
 ```bash
-pytest                            # Run all 54 tests
-pytest -m "not slow"              # Skip GPT-2 inference tests
-pytest tests/test_crypto.py -v    # Run specific module
+git clone https://github.com/ProfRandom92/comptext-core.git
+cd comptext-core
+pip install -e ".[dev]"
 ```
 
-```
-✅ test_capabilities.py     4 tests
-✅ test_cognitive.py        2 tests  (GPT-2 attention-head ablation)
-✅ test_crypto.py           4 tests  (BLAKE3 Merkle)
-✅ test_ed25519_e2e.py      1 test   (full sign+verify flow)
-✅ test_engine_stats.py    19 tests  (Mulberry32, sentiment, trace-hash)
-┅ test_plan_validator.py   3 tests
-✅ test_providers.py       13 tests  (all 5 providers, mocked)
-✅ test_renderer.py         6 tests  (logo + chafa fallback)
-✅ test_skills_loader.py    3 tests
-─────────────────────────────────
-   TOTAL                  54/54 ✅
-```
-
----
-
-## Optional: chafa (Terminal Image Rendering)
+## Schnellstart
 
 ```bash
-# Windows
-winget install chafa
-scoop install chafa
+comptext                    # zeigt das Logo und startet die REPL
+comptext audit .             # auditiert das aktuelle Verzeichnis
+comptext capabilities --json # zeigt den Capability-Contract
+comptext keygen               # erzeugt Ed25519-Schlüsselpaar
+comptext --help               # alle verfügbaren Befehle
+```
 
-# macOS
-brew install chafa
+## Provider konfigurieren
 
-# Linux
-apt install chafa
+```env
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+GOOGLE_API_KEY=...
+XAI_API_KEY=...
+NVIDIA_API_KEY=nvapi-...
 ```
 
 ```bash
-comptext logo                     # Static ANSI logo (always works)
-comptext logo --image myimage.png # Dynamic rendering via chafa
+comptext chat --provider nvidia
+comptext code "erkläre die engine.py" --provider anthropic
 ```
 
-chafa is optional — the CLI degrades gracefully to the static ANSI logo if not installed.
+## Optionale Terminal-Bild-Unterstützung (chafa)
 
----
+CompText integriert sich mit `chafa` (einem Befehlszeilen-Bild-zu-Terminal-Zeichen-Renderer), um das Rendern benutzerdefinierter Bilder im Terminal zu ermöglichen.
 
-## Changelog
+### Installation
 
-See [CHANGELOG.md](CHANGELOG.md) for full release history.
+`chafa` ist eine System-Binärdatei, kein Python-Paket. Sie kann über den Paketmanager Ihres Systems installiert werden:
 
-**v0.1.0** — 2026-07-01 — Initial release
+- **Windows**: `winget install chafa` oder `scoop install chafa`
+- **macOS**: `brew install chafa`
+- **Linux**: `sudo apt install chafa` (Debian/Ubuntu) oder `sudo dnf install chafa` (Fedora)
 
----
+Wenn `chafa` nicht im System-Pfad (`PATH`) installiert ist, stuft das CLI die Ausgabe automatisch und problemlos auf das statische ANSI-Logo oder ein einfaches Texttitel-Fallback zurück.
 
-## License
+## Tests
 
-MIT © 2026 Alexander Kölnberger — see [LICENSE](LICENSE)
+```bash
+pytest -v
+```
 
----
+## Beitragen
 
-<div align="center">
+Pull Requests willkommen. Bitte vor dem Commit pytest -v laufen lassen
+und sicherstellen, dass alle Tests grün bleiben.
 
-*Built with antigravity. Verified with cryptography. Powered by context.*
+## Lizenz
 
-</div>
+Siehe [LICENSE](LICENSE).
