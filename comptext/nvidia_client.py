@@ -62,7 +62,8 @@ class NVIDIAClient:
             payload["stream"] = False
             response = await self._client.post("/chat/completions", json=payload)
             response.raise_for_status()
-            return response.json()
+            yield response.json()
+            return
 
         # Streaming response
         payload["stream"] = True

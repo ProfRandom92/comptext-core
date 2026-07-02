@@ -70,6 +70,9 @@ class CompTextREPL:
         while self._running:
             try:
                 user_input = await self.prompt()
+                if user_input.strip() in ("/quit", "/exit"):
+                    self.stop()
+                    continue
                 response = await self._handle_input(user_input)
                 print(response)
 
@@ -185,7 +188,8 @@ def run_cli() -> None:
         return
 
     from .state import AppState
-    from .commands import CommandDispatcher, COMMANDS
+    from .commands import CommandDispatcher
+    from .cmd_registry import COMMANDS
 
     app_state = AppState()
     dispatcher = CommandDispatcher(app_state)
