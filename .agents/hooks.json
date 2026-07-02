@@ -1,0 +1,16 @@
+{
+  "comptext-exception-checker": {
+    "PreToolUse": [
+      {
+        "matcher": "write_to_file|replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\CompText-SPARK-Sandbox-TESTING\\CompText-SPARK-Sandbox\\repos\\comptext-forge\\.agents\\hooks\\check_exceptions.bat",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
