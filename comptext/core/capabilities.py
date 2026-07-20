@@ -871,8 +871,19 @@ def validation_commands_for_run() -> List[str]:
 def run_validation_step(cmd_str: str) -> Dict[str, Any]:
     import shlex
     import subprocess
+
+    is_posix = (os.name != "nt")
     try:
-        parts = shlex.split(cmd_str)
+        parts = shlex.split(cmd_str, posix=is_posix)
+        if not is_posix:
+            cleaned_parts = []
+            for part in parts:
+                if part.startswith('"') and part.endswith('"'):
+                    part = part[1:-1]
+                elif part.startswith("'") and part.endswith("'"):
+                    part = part[1:-1]
+                cleaned_parts.append(part)
+            parts = cleaned_parts
     except Exception:
         parts = cmd_str.split()
 
@@ -883,7 +894,9 @@ def run_validation_step(cmd_str: str) -> Dict[str, Any]:
     env["CTXT_VALIDATE_INNER"] = "1"
 
     executable = parts[0]
-    _, ext = os.path.splitext(executable.lower())
+    # Normalize trailing dots and spaces according to Windows date name semantics
+    norm_executable = executable.rstrip(". ")
+    _, ext = os.path.splitext(norm_executable.lower())
     if ext in {".cmd", ".bat", ".ps1", ".vbs", ".js", ".wsf"}:
         return {
             "cmd": cmd_str,

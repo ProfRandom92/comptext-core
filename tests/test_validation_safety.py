@@ -113,3 +113,38 @@ def test_script_extensions_blocked():
     res_ps1 = run_validation_step("test.ps1")
     assert res_ps1["ok"] is False
     assert "Security Policy Violation" in res_ps1["stderr_excerpt"]
+
+def test_windows_parsing_and_suffix_bypasses():
+    # 1. Trailing dot bypasses blocked
+    res_cmd_dot = run_validation_step("test.cmd.")
+    assert res_cmd_dot["ok"] is False
+    assert "Security Policy Violation" in res_cmd_dot["stderr_excerpt"]
+
+    res_bat_dot = run_validation_step("test.bat.")
+    assert res_bat_dot["ok"] is False
+    assert "Security Policy Violation" in res_bat_dot["stderr_excerpt"]
+
+    # 2. Trailing space bypasses blocked
+    res_bat_space = run_validation_step("test.bat ")
+    assert res_bat_space["ok"] is False
+    assert "Security Policy Violation" in res_bat_space["stderr_excerpt"]
+
+    res_ps1_space = run_validation_step("test.ps1 ")
+    assert res_ps1_space["ok"] is False
+    assert "Security Policy Violation" in res_ps1_space["stderr_excerpt"]
+
+    # 3. Windows path parsing (backslashes preserved)
+    # We test that we can parse a command with backslashes correctly.
+    # Note: run_validation_step will fail execution if the binary doesn't exist, but it should NOT fail with "empty validation command".
+    # And it should not strip backslashes on Windows.
+    # Let's inspect the parsed command arguments by mocking/asserting behavior or executing python -c
+    import sys
+    import os
+    python_exe = sys.executable
+    # Backslash path to python exe should work under Windows
+    cmd = f'"{python_exe}" -c "import sys; print(sys.argv)" "arg\\with\\backslashes" "arg with spaces"'
+    res = run_validation_step(cmd)
+    assert res["ok"] is True
+    # Verify that backslashes and spaces in arguments are preserved in output
+    assert "arg\\\\with\\\\backslashes" in res["stdout_excerpt"]
+    assert "arg with spaces" in res["stdout_excerpt"]
