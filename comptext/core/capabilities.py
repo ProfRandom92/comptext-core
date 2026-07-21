@@ -644,7 +644,7 @@ def list_proposal_files(proposals_dir: str = "proposals") -> List[Tuple[str, str
     root = Path(proposals_dir)
     if not root.exists() or not root.is_dir():
         return []
-    
+
     files = []
     for item in root.iterdir():
         if item.is_file() and item.suffix == ".json":
@@ -658,7 +658,7 @@ def list_review_files(reviews_dir: str = "reviews") -> List[Tuple[str, str, Path
     root = Path(reviews_dir)
     if not root.exists() or not root.is_dir():
         return []
-    
+
     files = []
     for item in root.iterdir():
         if item.is_file() and item.name.endswith(".review.json"):
@@ -672,36 +672,36 @@ def validate_proposal_contract(data: Any, filename_id: str) -> List[str]:
     errors = []
     if not isinstance(data, dict):
         return ["proposal must be a JSON object"]
-    
+
     if not is_safe_proposal_id(filename_id):
         errors.append(f"filename stem '{filename_id}' is not a safe proposal id")
-        
+
     schema_version = data.get("schema_version")
     if schema_version != "proposal.v1":
         errors.append("schema_version must be 'proposal.v1'")
-        
+
     embedded_id = data.get("id")
     if embedded_id != filename_id:
         errors.append("proposal id must match filename stem")
-        
+
     for field in ["created_at", "phase", "title", "summary", "intent", "secrets"]:
         val = data.get(field)
         if not isinstance(val, str):
             errors.append(f"field '{field}' must be a string")
-            
+
     for field in ["allowed_files", "forbidden_scope", "validation"]:
         val = data.get(field)
         if not isinstance(val, list) or not all(isinstance(x, str) for x in val):
             errors.append(f"field '{field}' must be an array of strings")
-            
+
     network = data.get("network")
     if network not in ("offline-only", "local-only", "allowed-external"):
         errors.append("network must be one of offline-only, local-only, allowed-external")
-        
+
     status = data.get("status")
     if status not in ("draft", "ready-for-review", "rejected", "approved-for-apply"):
         errors.append("status must be one of draft, ready-for-review, rejected, approved-for-apply")
-        
+
     changes = data.get("changes")
     if isinstance(changes, list):
         for index, change in enumerate(changes):
@@ -716,30 +716,30 @@ def validate_proposal_contract(data: Any, filename_id: str) -> List[str]:
                 errors.append(f"changes[{index}].action must be one of add, modify, delete, rename, document")
     else:
         errors.append("field 'changes' must be an array of objects")
-        
+
     return errors
 
 def validate_review_contract(data: Any, filename_id: str) -> List[str]:
     errors = []
     if not isinstance(data, dict):
         return ["review must be a JSON object"]
-        
+
     if not is_safe_review_id(filename_id):
         errors.append(f"filename id '{filename_id}' is not a safe review id")
-        
+
     schema_version = data.get("schema_version")
     if schema_version != "review.v1":
         errors.append("schema_version must be 'review.v1'")
-        
+
     embedded_id = data.get("id")
     if embedded_id != filename_id:
         errors.append("review id must match filename-derived id")
-        
+
     for field in ["created_at", "phase", "target", "summary"]:
         val = data.get(field)
         if not isinstance(val, str):
             errors.append(f"field '{field}' must be a string")
-            
+
     role_id = data.get("role_id")
     allowed_roles = [
         "schema-reviewer",
@@ -751,11 +751,11 @@ def validate_review_contract(data: Any, filename_id: str) -> List[str]:
     ]
     if role_id not in allowed_roles:
         errors.append("role_id must be one of the allowed subagent role ids")
-        
+
     val_refs = data.get("validation_refs")
     if not isinstance(val_refs, list) or not all(isinstance(x, str) for x in val_refs):
         errors.append("field 'validation_refs' must be an array of strings")
-        
+
     def validate_items(field_name: str, enum_field: str, allowed_vals: List[str]):
         items = data.get(field_name)
         if isinstance(items, list):
@@ -775,7 +775,7 @@ def validate_review_contract(data: Any, filename_id: str) -> List[str]:
     validate_items("findings", "severity", ["info", "low", "medium", "high"])
     validate_items("risks", "severity", ["low", "medium", "high"])
     validate_items("recommendations", "action", ["keep", "fix", "defer", "reject"])
-    
+
     # validate safety_flags
     flags = data.get("safety_flags")
     if isinstance(flags, dict):
@@ -795,11 +795,11 @@ def validate_review_contract(data: Any, filename_id: str) -> List[str]:
                 errors.append(f"safety_flags.{field} must be false")
     else:
         errors.append("field 'safety_flags' must be an object")
-        
+
     status = data.get("status")
     if status not in ("draft", "ready-for-review", "accepted", "rejected"):
         errors.append("status must be one of draft, ready-for-review, accepted, rejected")
-        
+
     return errors
 
 def get_proposals_list_report(proposals_dir: str = "proposals") -> Dict[str, Any]:
@@ -812,7 +812,7 @@ def get_proposals_list_report(proposals_dir: str = "proposals") -> Dict[str, Any
         except Exception:
             parsed = None
             errors = ["proposal JSON is malformed"]
-            
+
         proposals.append({
             "id": stem,
             "path": rel_path,
@@ -840,7 +840,7 @@ def get_reviews_list_report(reviews_dir: str = "reviews") -> Dict[str, Any]:
         except Exception:
             parsed = None
             errors = ["review JSON is malformed"]
-            
+
         reviews.append({
             "id": stem,
             "path": rel_path,
@@ -871,24 +871,47 @@ def validation_commands_for_run() -> List[str]:
 def run_validation_step(cmd_str: str) -> Dict[str, Any]:
     import shlex
     import subprocess
+
+    is_posix = (os.name != "nt")
     try:
-        parts = shlex.split(cmd_str)
+        parts = shlex.split(cmd_str, posix=is_posix)
+        if not is_posix:
+            cleaned_parts = []
+            for part in parts:
+                if part.startswith('"') and part.endswith('"'):
+                    part = part[1:-1]
+                elif part.startswith("'") and part.endswith("'"):
+                    part = part[1:-1]
+                cleaned_parts.append(part)
+            parts = cleaned_parts
     except Exception:
         parts = cmd_str.split()
-        
+
     if not parts:
         return {"cmd": cmd_str, "ok": False, "exit_code": -1, "error": "empty validation command"}
-        
+
     env = dict(os.environ)
     env["CTXT_VALIDATE_INNER"] = "1"
-    
+
+    executable = parts[0]
+    # Normalize trailing dots and spaces according to Windows date name semantics
+    norm_executable = executable.rstrip(". ")
+    _, ext = os.path.splitext(norm_executable.lower())
+    if ext in {".cmd", ".bat", ".ps1", ".vbs", ".js", ".wsf"}:
+        return {
+            "cmd": cmd_str,
+            "ok": False,
+            "exit_code": -1,
+            "stderr_excerpt": f"Security Policy Violation: script execution of extension '{ext}' is forbidden."
+        }
+
     try:
         res = subprocess.run(
             parts,
             capture_output=True,
             text=True,
             env=env,
-            shell=True
+            shell=False
         )
         return {
             "cmd": cmd_str,
@@ -914,18 +937,18 @@ def run_validation_flow(run: bool) -> Dict[str, Any]:
             "run": False,
             "validation_commands": validation_commands()
         }
-        
+
     commands = validation_commands_for_run()
     steps = []
     failed_step = None
-    
+
     for command in commands:
         step = run_validation_step(command)
         steps.append(step)
         if not step["ok"]:
             failed_step = command
             break
-            
+
     payload = {
         "command": "validate",
         "run": True,
@@ -935,4 +958,3 @@ def run_validation_flow(run: bool) -> Dict[str, Any]:
     if failed_step:
         payload["failed_step"] = failed_step
     return payload
-
